@@ -1,0 +1,126 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Fish Tap</title>
+  <style>
+    body{margin:0;height:100vh;display:grid;place-items:center;background:#0b1220;color:#fff;font-family:system-ui;touch-action:manipulation}
+    #wrap{width:min(420px,92vw);text-align:center}
+    canvas{width:100%;height:auto;background:linear-gradient(#0f1b33,#0a1022);border-radius:18px;box-shadow:0 16px 40px rgba(0,0,0,.35)}
+    .hud{display:flex;justify-content:space-between;gap:10px;margin:10px 2px 0;font-weight:800}
+    button{border:0;padding:10px 14px;border-radius:999px;font-weight:800}
+  </style>
+</head>
+<body>
+<div id="wrap">
+  <h2>🐟 Fish Tap</h2>
+  <canvas id="c" width="420" height="320"></canvas>
+  <div class="hud">
+    <div id="s">Score: 0</div>
+    <button id="r">Restart</button>
+    <div id="t">Time: 30</div>
+  </div>
+  <p style="opacity:.75;margin:10px 0 0">Tap the fish fast. 30 seconds. 🐾</p>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const sEl = document.getElementById('s');
+const tEl = document.getElementById('t');
+
+let score=0, time=30, fish, speed=1, playing=true, timer;
+
+function spawn(){
+  fish = {
+    x: Math.random()*(canvas.width-80)+40,
+    y: Math.random()*(canvas.height-120)+70,
+    r: 18,
+    vx: (Math.random()<0.5?-1:1)*(1.2+speed*0.25),
+    vy: (Math.random()<0.5?-1:1)*(0.7+speed*0.15)
+  };
+}
+
+function reset(){
+  score=0; time=30; speed=1; playing=true;
+  sEl.textContent=`Score: ${score}`;
+  tEl.textContent=`Time: ${time}`;
+  spawn();
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    if(!playing) return;
+    time--;
+    tEl.textContent=`Time: ${time}`;
+    if(time<=0){ playing=false; clearInterval(timer); }
+  },1000);
+}
+reset();
+
+function drawFish(){
+  // body
+  ctx.fillStyle="#7bdff2";
+  ctx.beginPath(); ctx.ellipse(fish.x, fish.y, fish.r*1.4, fish.r, 0, 0, Math.PI*2); ctx.fill();
+  // tail
+  ctx.beginPath();
+  ctx.moveTo(fish.x - fish.r*1.6, fish.y);
+  ctx.lineTo(fish.x - fish.r*2.4, fish.y - fish.r*0.9);
+  ctx.lineTo(fish.x - fish.r*2.4, fish.y + fish.r*0.9);
+  ctx.closePath(); ctx.fill();
+  // eye
+  ctx.fillStyle="#0b1220";
+  ctx.beginPath(); ctx.arc(fish.x+fish.r*0.6, fish.y-fish.r*0.2, 3, 0, Math.PI*2); ctx.fill();
+}
+
+function loop(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // bubbles
+  for(let i=0;i<10;i++){
+    ctx.fillStyle="rgba(255,255,255,0.08)";
+    ctx.beginPath();
+    ctx.arc((i*45 + (Date.now()/25)%45), (i*28 + (Date.now()/40)%28), 6, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  if(playing){
+    fish.x += fish.vx;
+    fish.y += fish.vy;
+    if(fish.x<50 || fish.x>canvas.width-50) fish.vx *= -1;
+    if(fish.y<60 || fish.y>canvas.height-70) fish.vy *= -1;
+  }
+
+  drawFish();
+
+  if(!playing){
+    ctx.fillStyle="rgba(0,0,0,.5)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle="#fff";
+    ctx.font="bold 22px system-ui";
+    ctx.textAlign="center";
+    ctx.fillText(`Time’s up! Score: ${score} 😼`, canvas.width/2, 150);
+    ctx.font="16px system-ui";
+    ctx.fillText("Tap Restart", canvas.width/2, 180);
+  }
+
+  requestAnimationFrame(loop);
+}
+loop();
+
+canvas.addEventListener('pointerdown', (e)=>{
+  if(!playing) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+  const dx=x-fish.x, dy=y-fish.y;
+  if(Math.hypot(dx,dy) < fish.r*1.5){
+    score++; speed += 0.12;
+    sEl.textContent=`Score: ${score}`;
+    spawn();
+  }
+});
+
+document.getElementById('r').addEventListener('click', reset);
+</script>
+</body>
+</html>
